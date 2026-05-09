@@ -24,10 +24,10 @@ SOFTWARE.
 import discord
 from discord.ext import commands
 
-import function as func
+from ..config import Config
 
 class HelpDropdown(discord.ui.Select):
-    def __init__(self, categories:list):
+    def __init__(self, categories: list[str]) -> None:
         self.view: HelpView
 
         super().__init__(
@@ -61,9 +61,6 @@ class HelpView(discord.ui.View):
         self.add_item(discord.ui.Button(label='Github', emoji=':github:1098265017268322406', url='https://github.com/ChocoMeow/Vocard'))
         self.add_item(discord.ui.Button(label='Donate', emoji=':patreon:913397909024800878', url='https://www.patreon.com/Vocard'))
         self.add_item(HelpDropdown(self.categories))
-    
-    async def on_error(self, error, item, interaction) -> None:
-        return
 
     async def on_timeout(self) -> None:
         for child in self.children:
@@ -80,20 +77,20 @@ class HelpView(discord.ui.View):
     def build_embed(self, category: str) -> discord.Embed:
         category = category.lower()
         if category == "news":
-            embed = discord.Embed(title="Vocard Help Menu", url="https://discord.com/channels/811542332678996008/811909963718459392/1069971173116481636", color=func.settings.embed_color)
+            embed = discord.Embed(title="Vocard Help Menu", url="https://discord.com/channels/811542332678996008/811909963718459392/1069971173116481636", color=Config().embed_color)
             embed.add_field(
                 name=f"Available Categories: [{2 + len(self.categories)}]",
                 value="```py\n👉 News\n2. Tutorial\n{}```".format("".join(f"{i}. {c}\n" for i, c in enumerate(self.categories, start=3))),
                 inline=True
             )
 
-            update = "Vocard is a simple music bot. It leads to a comfortable experience which is user-friendly, It supports YouTube, Soundcloud, Spotify, Twitch and more!"
+            update = "Vocard is a simple music bot. It leads to a comfortable experience which is user-friendly, It supports Soundcloud, Spotify, Twitch and more!"
             embed.add_field(name="📰 Information:", value=update, inline=True)
-            embed.add_field(name="Get Started", value="```Join a voice channel and /play {Song/URL} a song. (Names, Youtube Video Links or Playlist links or Spotify links are supported on Vocard)```", inline=False)
+            embed.add_field(name="Get Started", value="```Join a voice channel and /play {Song/URL} a song. (Names, Video Links or Playlist links are supported on Vocard)```", inline=False)
             
             return embed
 
-        embed = discord.Embed(title=f"Category: {category.capitalize()}", color=func.settings.embed_color)
+        embed = discord.Embed(title=f"Category: {category.capitalize()}", color=Config().embed_color)
         embed.add_field(name=f"Categories: [{2 + len(self.categories)}]", value="```py\n" + "\n".join(("👉 " if c == category.capitalize() else f"{i}. ") + c for i, c in enumerate(['News', 'Tutorial'] + self.categories, start=1)) + "```", inline=True)
 
         if category == 'tutorial':
