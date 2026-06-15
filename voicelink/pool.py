@@ -81,7 +81,8 @@ class Node:
         yt_ratelimit: dict = None,
         session: Optional[aiohttp.ClientSession] = None,
         resume_key: Optional[str] = None,
-        logger: Optional[logging.Logger] = None
+        logger: Optional[logging.Logger] = None,
+        node_type: Optional[str] = None
     ):
         self._bot: Bot = bot
         self._host: str = host
@@ -93,6 +94,7 @@ class Node:
         self._secure: bool = secure
         self._logger: Optional[logging.Logger] = logger
         self._stats: Optional[NodeStats] = None
+        self._node_type: Optional[str] = str(node_type).lower() if node_type else None
 
         self._websocket_uri: str = f"{'wss' if self._secure else 'ws'}://{self._host}:{self._port}/" + NODE_VERSION + "/websocket"
         self._rest_uri: str = f"{'https' if self._secure else 'http'}://{self._host}:{self._port}"
@@ -136,8 +138,11 @@ class Node:
 
     @property
     def is_nodelink(self) -> bool:
-        """Returns True when the connected server is Nodelink rather than Lavalink,
-        auto-detected by the absence of the `jvm` field in /v4/info (Nodelink is not JVM-based)."""
+        """Returns True when the connected server is Nodelink rather than Lavalink.
+        Explicit `type` in settings.json takes precedence; otherwise auto-detected
+        by the absence of the `jvm` field in /v4/info (Nodelink is not JVM-based)."""
+        if self._node_type is not None:
+            return self._node_type == "nodelink"
         return self._info is not None and self._info.jvm is None
 
 
@@ -493,20 +498,24 @@ class NodePool:
         yt_ratelimit: dict = None,
         session: Optional[aiohttp.ClientSession] = None,
         resume_key: Optional[str] = None,
-        logger: Optional[logging.Logger] = None
+        logger: Optional[logging.Logger] = None,
+        node_type: Optional[str] = None
     ) -> Node:
         """Creates a Node object to be then added into the node pool.
+
+        `node_type` matches the optional key in a settings.json node entry, so a
+        node config can be forwarded directly (e.g. `create_node(bot=bot, **node)`).
         """
         if identifier in cls._nodes.keys():
             raise NodeCreationError(f"A node with identifier '{identifier}' already exists.")
-        
+
         if not logger:
             logger = logging.getLogger("vocard")
-            
+
         node = Node(
             pool=cls, bot=bot, host=host, port=port, password=password,
             identifier=identifier, secure=secure, heartbeat=heartbeat, yt_ratelimit=yt_ratelimit,
-            session=session, resume_key=resume_key, logger=logger
+            session=session, resume_key=resume_key, logger=logger, node_type=node_type
         )
 
         await node.connect()
