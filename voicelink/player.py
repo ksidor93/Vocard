@@ -565,7 +565,10 @@ class Player(VoiceProtocol):
     async def stop(self):
         """Stops the currently playing track."""
         self._current = None
-        await self.send(method=RequestMethod.PATCH, data={'encodedTrack': None})
+        if self._node.is_nodelink:
+            await self.send(method=RequestMethod.PATCH, data={"track": {"encoded": None}})
+        else:
+            await self.send(method=RequestMethod.PATCH, data={'encodedTrack': None})
 
     async def disconnect(self, *, force: bool = False):
         """Disconnects the player from voice."""
@@ -603,15 +606,15 @@ class Player(VoiceProtocol):
         if not self._node:
             return track
 
-        data = {
-            "encodedTrack": track.track_id,
-            "position": str(start or 0)
-        }
+        if self._node.is_nodelink:
+            data = {"track": {"encoded": track.track_id}, "position": start or 0}
+        else:
+            data = {"encodedTrack": track.track_id, "position": start or 0}
 
         if end or track.end_time:
-            data["endTime"] = str(end or track.end_time)
-        
-        await self.send(method=RequestMethod.PATCH, query=f"noReplace={ignore_if_playing}", data=data)
+            data["endTime"] = end or track.end_time
+
+        await self.send(method=RequestMethod.PATCH, query=f"noReplace={str(ignore_if_playing).lower()}", data=data)
         if self._node.yt_ratelimit:
             await self._node.yt_ratelimit.handle_request()
 

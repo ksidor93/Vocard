@@ -121,6 +121,7 @@ class NodeInfoVersion:
        Gives version information on the node.
     """
     def __init__(self, data: Dict) -> None:
+        data = data or {}
         self.semver: str = data.get("semver")
         self.major: int = data.get("major")
         self.minor: int = data.get("minor")
@@ -137,7 +138,7 @@ class NodeInfo:
         self.build_time: int = data.get("buildTime")
         self.jvm: str = data.get("jvm")
         self.lavaplayer: str = data.get("lavaplayer")
-        self.plugins: Optional[Dict[str, Plugin]] = [Plugin(plugin_data) for plugin_data in data.get("plugins")]
+        self.plugins: Optional[Dict[str, Plugin]] = [Plugin(plugin_data) for plugin_data in data.get("plugins") or []]
 
 class Plugin:
     """The base class for the plugin object.

@@ -134,6 +134,12 @@ class Node:
         """"Property which returns whether this node is connected or not"""
         return self._websocket is not None and not self._websocket.closed
 
+    @property
+    def is_nodelink(self) -> bool:
+        """Returns True when the connected server is Nodelink rather than Lavalink,
+        auto-detected by the absence of the `jvm` field in /v4/info (Nodelink is not JVM-based)."""
+        return self._info is not None and self._info.jvm is None
+
 
     @property
     def stats(self) -> NodeStats:
