@@ -382,7 +382,10 @@ class Player(VoiceProtocol):
     async def _dispatch_event(self, data: dict):
         """Dispatches an event based on the type of event data received."""
         event_type = data.get("type")
-        event: VoicelinkEvent = getattr(events, event_type)(data, self)
+        event_class = getattr(events, event_type, None) if event_type else None
+        if event_class is None:
+            return
+        event: VoicelinkEvent = event_class(data, self)
 
         if isinstance(event, TrackEndEvent) and event.reason != "replaced":
             self._current = None
