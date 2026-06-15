@@ -121,7 +121,7 @@ class Player(VoiceProtocol):
 
         self.settings: dict = settings
         self.joinTime: float = round(time.time())
-        self._volume: int = self.settings.get('volume', 100)
+        self._volume: int = int(self.settings.get('volume', 100))
         self.queue: Queue = QUEUE_TYPES.get(self.settings.get("queue_type", "queue").lower())(
             self.settings.get("max_queue", Config().max_queue),
             self.settings.get("duplicate_track", True), self.get_msg
@@ -732,6 +732,7 @@ class Player(VoiceProtocol):
 
     async def set_volume(self, volume: int, requester: Member = None) -> int:
         """Sets the volume of the player as an integer. Lavalink accepts values from 0 to 500."""
+        volume = int(volume)
         await self.send(method=RequestMethod.PATCH, data={"volume": volume})
         self._volume = volume
 
