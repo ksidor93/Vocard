@@ -239,13 +239,15 @@ class Node:
             self._stats = NodeStats(data)
             return
 
+        player = None
         if "guildId" in data:
-            if not (player := self._players.get(int(data["guildId"]))):
+            player = self._players.get(int(data["guildId"]))
+            if not player:
                 return
 
-        if op == "event":
+        if op == "event" and player:
             await player._dispatch_event(data)
-        elif op == "playerUpdate":
+        elif op == "playerUpdate" and player:
             await player._update_state(data)
 
     async def send(self, method: RequestMethod, query: str, data: Union[dict, str] = {}) -> dict:
