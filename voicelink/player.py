@@ -121,7 +121,7 @@ class Player(VoiceProtocol):
 
         self.settings: dict = settings
         self.joinTime: float = round(time.time())
-        self._volume: int = self.settings.get('volume', 100)
+        self._volume: int = int(self.settings.get('volume', 100))
         self.queue: Queue = QUEUE_TYPES.get(self.settings.get("queue_type", "queue").lower())(
             self.settings.get("max_queue", Config().max_queue),
             self.settings.get("duplicate_track", True), self.get_msg
@@ -382,7 +382,10 @@ class Player(VoiceProtocol):
     async def _dispatch_event(self, data: dict):
         """Dispatches an event based on the type of event data received."""
         event_type = data.get("type")
-        event: VoicelinkEvent = getattr(events, event_type)(data, self)
+        event_class = getattr(events, event_type, None) if event_type else None
+        if event_class is None:
+            return
+        event: VoicelinkEvent = event_class(data, self)
 
         if isinstance(event, TrackEndEvent) and event.reason != "replaced":
             self._current = None
@@ -562,7 +565,10 @@ class Player(VoiceProtocol):
     async def stop(self):
         """Stops the currently playing track."""
         self._current = None
-        await self.send(method=RequestMethod.PATCH, data={'encodedTrack': None})
+        if self._node.is_nodelink:
+            await self.send(method=RequestMethod.PATCH, data={"track": {"encoded": None}})
+        else:
+            await self.send(method=RequestMethod.PATCH, data={'encodedTrack': None})
 
     async def disconnect(self, *, force: bool = False):
         """Disconnects the player from voice."""
@@ -600,15 +606,15 @@ class Player(VoiceProtocol):
         if not self._node:
             return track
 
-        data = {
-            "encodedTrack": track.track_id,
-            "position": str(start or 0)
-        }
+        if self._node.is_nodelink:
+            data = {"track": {"encoded": track.track_id}, "position": start or 0}
+        else:
+            data = {"encodedTrack": track.track_id, "position": start or 0}
 
         if end or track.end_time:
-            data["endTime"] = str(end or track.end_time)
-        
-        await self.send(method=RequestMethod.PATCH, query=f"noReplace={ignore_if_playing}", data=data)
+            data["endTime"] = end or track.end_time
+
+        await self.send(method=RequestMethod.PATCH, query=f"noReplace={str(ignore_if_playing).lower()}", data=data)
         if self._node.yt_ratelimit:
             await self._node.yt_ratelimit.handle_request()
 
@@ -726,6 +732,7 @@ class Player(VoiceProtocol):
 
     async def set_volume(self, volume: int, requester: Member = None) -> int:
         """Sets the volume of the player as an integer. Lavalink accepts values from 0 to 500."""
+        volume = int(volume)
         await self.send(method=RequestMethod.PATCH, data={"volume": volume})
         self._volume = volume
 
